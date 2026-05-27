@@ -941,6 +941,76 @@ export default function SistemaCompleto() {
                   </div>
                 </div>
 
+                {/* Processed OpenCV Images */}
+                {(data.multiagente.imagen_gris || data.multiagente.imagen_umbral || data.multiagente.imagen_canny) && (
+                  <div className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-sm space-y-4 shadow-lg">
+                    <div className="flex items-center gap-2 border-b border-slate-850 pb-3 justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
+                        <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                          Procesamiento de Visión Artificial (OpenCV)
+                        </h3>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                        Filtros en tiempo real
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Grayscale Version */}
+                      {data.multiagente.imagen_gris && (
+                        <div className="space-y-2">
+                          <span className="text-xs text-slate-400 font-semibold flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                            1. Escala de Grises
+                          </span>
+                          <div className="w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-900/50 p-2 flex items-center justify-center min-h-[140px] max-h-[180px]">
+                            <img
+                              src={getImageUrl(data.multiagente.imagen_gris, Date.now())}
+                              alt="Gris"
+                              className="max-h-[130px] w-auto object-contain rounded hover:scale-105 transition-transform duration-200"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Thresholded Version */}
+                      {data.multiagente.imagen_umbral && (
+                        <div className="space-y-2">
+                          <span className="text-xs text-slate-400 font-semibold flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                            2. Umbralización
+                          </span>
+                          <div className="w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-900/50 p-2 flex items-center justify-center min-h-[140px] max-h-[180px]">
+                            <img
+                              src={getImageUrl(data.multiagente.imagen_umbral, Date.now())}
+                              alt="Umbral"
+                              className="max-h-[130px] w-auto object-contain rounded hover:scale-105 transition-transform duration-200"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Canny Version */}
+                      {data.multiagente.imagen_canny && (
+                        <div className="space-y-2">
+                          <span className="text-xs text-slate-400 font-semibold flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                            3. Extracción de Bordes (Canny)
+                          </span>
+                          <div className="w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-900/50 p-2 flex items-center justify-center min-h-[140px] max-h-[180px]">
+                            <img
+                              src={getImageUrl(data.multiagente.imagen_canny, Date.now())}
+                              alt="Canny"
+                              className="max-h-[130px] w-auto object-contain rounded hover:scale-105 transition-transform duration-200"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="rounded-2xl border border-slate-800 bg-slate-900/35 backdrop-blur-sm shadow-lg p-4 space-y-3">
                     <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">

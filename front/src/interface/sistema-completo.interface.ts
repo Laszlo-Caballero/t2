@@ -43,6 +43,9 @@ export interface AnomaliasVibracion {
 export interface Multiagente {
   datos_actuales: DatosActuales;
   imagen_analizada: string;
+  imagen_gris?: string;
+  imagen_umbral?: string;
+  imagen_canny?: string;
   hechos_detectados: string[];
   riesgos: Riesgos;
   recomendaciones: string[];

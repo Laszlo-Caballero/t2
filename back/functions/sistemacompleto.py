@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import threading
 import time
 import random
+import cv2
 from typing import List, Optional
 from model.sistemacompleto_model import PedidosInput
 
@@ -169,7 +170,37 @@ def ejecutar_sistema_completo(
                 hechos.append("ruta_obstruida")
             else:
                 hechos.append("paquete_correcto")
-            return imagen, hechos
+
+            # Procesamiento de imágenes con OpenCV
+            img_path = os.path.join("static", imagen)
+            imagen_gris = ""
+            imagen_umbral = ""
+            imagen_canny = ""
+            
+            try:
+                # Si la imagen por defecto no existe en static, copiarla
+                if not os.path.exists(img_path):
+                    src_path = os.path.join("images", imagen)
+                    if os.path.exists(src_path):
+                        shutil.copy(src_path, img_path)
+
+                gris = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+                if gris is not None:
+                    _, umbral = cv2.threshold(gris, 127, 255, cv2.THRESH_BINARY)
+                    canny = cv2.Canny(gris, 100, 200)
+
+                    base_name, ext = os.path.splitext(imagen)
+                    imagen_gris = f"{base_name}_gris.png"
+                    imagen_umbral = f"{base_name}_umbral.png"
+                    imagen_canny = f"{base_name}_canny.png"
+
+                    cv2.imwrite(os.path.join("static", imagen_gris), gris)
+                    cv2.imwrite(os.path.join("static", imagen_umbral), umbral)
+                    cv2.imwrite(os.path.join("static", imagen_canny), canny)
+            except Exception as e:
+                print(f"Error procesando OpenCV en sistemacompleto: {e}")
+
+            return imagen, imagen_gris, imagen_umbral, imagen_canny, hechos
 
     class AgenteProbabilistico:
         def evaluar_probabilidad(self, hechos):
@@ -239,11 +270,16 @@ def ejecutar_sistema_completo(
             hechos_detectados.extend(hechos)
         logs.append(f"[{time.time() - inicio:.2f}s] Agente Sensor y Señales terminó. Datos: {datos_actuales}, hechos: {hechos}")
 
+    imagen_gris = ""
+    imagen_umbral = ""
+    imagen_canny = ""
+
     def tarea_imagenes():
-        nonlocal imagen_analizada
+        nonlocal imagen_analizada, imagen_gris, imagen_umbral, imagen_canny
         logs.append(f"[{time.time() - inicio:.2f}s] Agente Analizador de Imágenes iniciado...")
         time.sleep(3)
-        imagen_analizada, hechos = analizador_imagenes.analizar_imagen()
+        res = analizador_imagenes.analizar_imagen()
+        imagen_analizada, imagen_gris, imagen_umbral, imagen_canny, hechos = res
         with bloqueo:
             hechos_detectados.extend(hechos)
         logs.append(f"[{time.time() - inicio:.2f}s] Agente de Imágenes terminó. Imagen: {imagen_analizada}, hechos: {hechos}")
@@ -315,6 +351,9 @@ def ejecutar_sistema_completo(
         "multiagente": {
             "datos_actuales": datos_actuales,
             "imagen_analizada": "/static/" + imagen_analizada,
+            "imagen_gris": "/static/" + imagen_gris if imagen_gris else None,
+            "imagen_umbral": "/static/" + imagen_umbral if imagen_umbral else None,
+            "imagen_canny": "/static/" + imagen_canny if imagen_canny else None,
             "hechos_detectados": hechos_detectados,
             "riesgos": riesgos,
             "recomendaciones": recomendaciones,
