@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import threading
 import time
 import random
+from typing import List, Optional
 from model.sistemacompleto_model import PedidosInput
 
 # Copiar las imágenes de almacén a la carpeta static para que sean accesibles mediante la API
@@ -26,8 +27,23 @@ def ejecutar_sistema_completo(
     vib_limite: float = 5.0,
     hum_limite: float = 70.0,
     ocu_limite: float = 85.0,
-    pedidos_input: PedidosInput = None
+    pedidos_input: PedidosInput = None,
+    imagenes_input: Optional[List] = None
 ):
+    # Guardar imágenes subidas si existen
+    imagenes_disponibles = []
+    if imagenes_input:
+        for file in imagenes_input:
+            filename = file.filename
+            ruta_destino = os.path.join("static", filename)
+            try:
+                contents = file.file.read()
+                with open(ruta_destino, "wb") as buffer:
+                    buffer.write(contents)
+                imagenes_disponibles.append(filename)
+            except Exception as e:
+                print(f"Error saving uploaded file {filename}:", e)
+
     # ============================================================
     # 1. SIMULACIÓN DE DATOS DEL ALMACÉN
     # ============================================================
@@ -136,19 +152,22 @@ def ejecutar_sistema_completo(
             return hechos
 
     class AgenteAnalizadorImagenes:
-        def analizar_imagen(self):
-            imagenes = [
+        def __init__(self, imagenes_disponibles=None):
+            self.imagenes_disponibles = imagenes_disponibles if imagenes_disponibles else [
                 "paquete_bueno.jpg",
                 "paquete_danado.jpg",
                 "zona_obstruida.jpg"
             ]
-            imagen = random.choice(imagenes)
+
+        def analizar_imagen(self):
+            imagen = random.choice(self.imagenes_disponibles)
             hechos = []
-            if imagen == "paquete_danado.jpg":
+            nombre = imagen.lower()
+            if "danado" in nombre or "roto" in nombre or "paquete_danado" in nombre:
                 hechos.append("paquete_danado")
-            elif imagen == "zona_obstruida.jpg":
+            elif "obstruida" in nombre or "bloqueada" in nombre or "ruta_obstruida" in nombre or "zona_obstruida" in nombre:
                 hechos.append("ruta_obstruida")
-            elif imagen == "paquete_bueno.jpg":
+            else:
                 hechos.append("paquete_correcto")
             return imagen, hechos
 
@@ -198,7 +217,7 @@ def ejecutar_sistema_completo(
     # ============================================================
     sensor = AgenteSensor()
     analizador_senales = AgenteAnalizadorSenales()
-    analizador_imagenes = AgenteAnalizadorImagenes()
+    analizador_imagenes = AgenteAnalizadorImagenes(imagenes_disponibles=imagenes_disponibles)
     agente_probabilistico = AgenteProbabilistico()
     decisor = AgenteDecisor()
 

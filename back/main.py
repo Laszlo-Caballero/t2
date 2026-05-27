@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from model.parteb_model import PartebRequest
 import time
-from typing import List
+from typing import List, Optional
 from fastapi import UploadFile, File, Form
 from functions.partec import analizar_imagenes
 from functions.partee import representar_conocimiento
@@ -20,7 +20,7 @@ from functions.partej import ejecutar_paralelo
 from functions.partek import obtener_datos_iniciales, optimizar_pedidos
 from model.partek_model import PedidosIniciales
 from functions.sistemacompleto import ejecutar_sistema_completo
-from model.sistemacompleto_model import SistemaCompletoRequest
+from model.sistemacompleto_model import SistemaCompletoRequest, PedidosInput
 
 os.makedirs("static", exist_ok=True)
 
@@ -151,14 +151,31 @@ async def read_partek(
 
 @app.post("/sistemacompleto")
 async def read_sistemacompleto(
-    request: SistemaCompletoRequest
+    imagenes: Optional[List[UploadFile]] = File(None),
+    seed: Optional[int] = Form(10),
+    registros: Optional[int] = Form(120),
+    temp_limite: Optional[float] = Form(32.0),
+    vib_limite: Optional[float] = Form(5.0),
+    hum_limite: Optional[float] = Form(70.0),
+    ocu_limite: Optional[float] = Form(85.0),
+    pedidos: Optional[str] = Form(None)
 ):
+    pedidos_input = None
+    if pedidos:
+        try:
+            import json
+            pedidos_data = json.loads(pedidos)
+            pedidos_input = PedidosInput(**pedidos_data)
+        except Exception as e:
+            print("Error parsing pedidos JSON in /sistemacompleto:", e)
+
     return ejecutar_sistema_completo(
-        seed=request.seed,
-        registros=request.registros,
-        temp_limite=request.temp_limite,
-        vib_limite=request.vib_limite,
-        hum_limite=request.hum_limite,
-        ocu_limite=request.ocu_limite,
-        pedidos_input=request.pedidos
+        seed=seed,
+        registros=registros,
+        temp_limite=temp_limite,
+        vib_limite=vib_limite,
+        hum_limite=hum_limite,
+        ocu_limite=ocu_limite,
+        pedidos_input=pedidos_input,
+        imagenes_input=imagenes
     )

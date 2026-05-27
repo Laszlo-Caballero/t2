@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { api } from "../utils/api";
 import { getImageUrl } from "../utils/image";
 import type {
@@ -156,10 +156,87 @@ export default function SistemaCompleto() {
   const [ocuLimite, setOcuLimite] = useState(85);
   const [rows, setRows] = useState<PedidoRow[]>(defaultRows);
 
+  const [archivosSeleccionados, setArchivosSeleccionados] = useState<File[]>([]);
+  const [fileObjectUrls, setFileObjectUrls] = useState<Map<string, string>>(new Map());
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      fileObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [fileObjectUrls]);
+
+  const handleAddNewFiles = (newFiles: File[]) => {
+    const updatedUrls = new Map(fileObjectUrls);
+    const updatedFiles = [...archivosSeleccionados];
+
+    newFiles.forEach((file) => {
+      if (!updatedFiles.some((f) => f.name === file.name)) {
+        updatedFiles.push(file);
+        const url = URL.createObjectURL(file);
+        updatedUrls.set(file.name, url);
+      }
+    });
+
+    setFileObjectUrls(updatedUrls);
+    setArchivosSeleccionados(updatedFiles);
+  };
+
+  const handleRemoveFile = (index: number) => {
+    const fileToRemove = archivosSeleccionados[index];
+    const updatedFiles = archivosSeleccionados.filter((_, i) => i !== index);
+    
+    if (fileObjectUrls.has(fileToRemove.name)) {
+      const url = fileObjectUrls.get(fileToRemove.name);
+      if (url) URL.revokeObjectURL(url);
+      const updatedUrls = new Map(fileObjectUrls);
+      updatedUrls.delete(fileToRemove.name);
+      setFileObjectUrls(updatedUrls);
+    }
+    
+    setArchivosSeleccionados(updatedFiles);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleAddNewFiles(Array.from(e.dataTransfer.files));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleAddNewFiles(Array.from(e.target.files));
+    }
+  };
+
+  const getPreviewSrc = (fileName: string) => {
+    const isSample = ["paquete_bueno.jpg", "paquete_danado.jpg", "zona_obstruida.jpg"].includes(fileName);
+    if (isSample) {
+      return `/${fileName}`;
+    }
+    return fileObjectUrls.get(fileName) || "";
+  };
+
   const mutation = useMutation({
     mutationKey: ["sistema-completo"],
-    mutationFn: async (payload: SistemaCompletoRequest) => {
-      const res = await api.post("/sistemacompleto", payload);
+    mutationFn: async (formData: FormData) => {
+      const res = await api.post("/sistemacompleto", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       return res.data as SistemaCompletoResponse;
     },
   });
@@ -217,18 +294,28 @@ export default function SistemaCompleto() {
     setVibLimite(5);
     setHumLimite(70);
     setOcuLimite(85);
+
+    // Reset images
+    fileObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+    setFileObjectUrls(new Map());
+    setArchivosSeleccionados([]);
   };
 
   const handleRun = () => {
-    mutation.mutate({
-      seed,
-      registros,
-      temp_limite: tempLimite,
-      vib_limite: vibLimite,
-      hum_limite: humLimite,
-      ocu_limite: ocuLimite,
-      pedidos: pedidosPayload,
+    const formData = new FormData();
+    formData.append("seed", seed.toString());
+    formData.append("registros", registros.toString());
+    formData.append("temp_limite", tempLimite.toString());
+    formData.append("vib_limite", vibLimite.toString());
+    formData.append("hum_limite", humLimite.toString());
+    formData.append("ocu_limite", ocuLimite.toString());
+    formData.append("pedidos", JSON.stringify(pedidosPayload));
+    
+    archivosSeleccionados.forEach((file) => {
+      formData.append("imagenes", file);
     });
+
+    mutation.mutate(formData);
   };
 
   const data = mutation.data;
@@ -341,6 +428,94 @@ export default function SistemaCompleto() {
                   className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-slate-100 focus:outline-none focus:border-indigo-500"
                 />
               </label>
+            </div>
+
+            {/* Image Upload Zone */}
+            <div className="space-y-3 pt-3 border-t border-slate-900/60">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-slate-400 font-semibold">Imágenes de Almacén</span>
+                {archivosSeleccionados.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fileObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+                      setFileObjectUrls(new Map());
+                      setArchivosSeleccionados([]);
+                    }}
+                    className="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer underline underline-offset-2"
+                  >
+                    Limpiar imágenes
+                  </button>
+                )}
+              </div>
+
+              {/* Drag Drop Area */}
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`py-6 px-4 rounded-xl border border-dashed text-center cursor-pointer transition-all ${
+                  isDragging
+                    ? "border-indigo-500 bg-indigo-500/5"
+                    : "border-slate-850 bg-slate-950/30 hover:border-slate-800 hover:bg-slate-950/60"
+                }`}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <svg className="w-8 h-8 text-indigo-400/80 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs font-semibold text-slate-300 block">
+                  Cargar imágenes o arrastrar aquí
+                </span>
+                <span className="text-[10px] text-slate-500 mt-0.5 block">
+                  (Opcional) Las imágenes se integrarán al sistema multiagente
+                </span>
+              </div>
+
+              {/* Selected Files List */}
+              {archivosSeleccionados.length > 0 && (
+                <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1 border border-slate-950/60 rounded-xl p-2 bg-slate-950/20">
+                  {archivosSeleccionados.map((file, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-1.5 rounded-lg bg-slate-950/80 border border-slate-900/60 text-xs"
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden mr-2">
+                        {/* Thumbnail */}
+                        <div className="w-8 h-8 rounded bg-slate-900 border border-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+                          <img
+                            src={getPreviewSrc(file.name)}
+                            alt="preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E";
+                            }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-slate-300 truncate font-mono">{file.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFile(idx)}
+                        className="p-1 hover:bg-slate-900 text-slate-500 hover:text-red-400 rounded transition-colors cursor-pointer"
+                        title="Eliminar de la lista"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
