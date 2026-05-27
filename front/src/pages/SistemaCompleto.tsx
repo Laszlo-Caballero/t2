@@ -669,7 +669,7 @@ export default function SistemaCompleto() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 shadow-lg space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
@@ -695,6 +695,39 @@ export default function SistemaCompleto() {
                           </div>
                         ),
                       )}
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 shadow-lg space-y-3 flex flex-col">
+                    <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
+                      <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                        Imagen Analizada
+                      </h3>
+                      <span className="text-[10px] text-slate-500">
+                        multiagente
+                      </span>
+                    </div>
+                    <div className="flex-1 flex flex-col justify-center items-center">
+                      {data.multiagente.imagen_analizada ? (
+                        <div className="w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-850 p-1 flex items-center justify-center max-h-[140px]">
+                          <img
+                            src={getImageUrl(
+                              data.multiagente.imagen_analizada,
+                              Date.now(),
+                            )}
+                            alt={data.multiagente.imagen_analizada}
+                            className="max-h-[130px] w-auto object-contain rounded hover:scale-105 transition-transform duration-200"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E";
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 text-xs">No hay imagen</span>
+                      )}
+                      <span className="mt-2 text-[10px] font-mono text-slate-400">
+                        {data.multiagente.imagen_analizada.split("/").pop()}
+                      </span>
                     </div>
                   </div>
 

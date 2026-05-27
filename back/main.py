@@ -14,7 +14,7 @@ from fastapi import UploadFile, File, Form
 from functions.partec import analizar_imagenes
 from functions.partee import representar_conocimiento
 from functions.parteg import sistemagraphic
-from functions.parteh import evaluar_riesgo
+from functions.parteh import evaluar_probabilidades
 from functions.partei import generar_diagrama_interaccion
 from functions.partej import ejecutar_paralelo
 from functions.partek import obtener_datos_iniciales, optimizar_pedidos
@@ -127,9 +127,10 @@ async def read_parteg():
 
 @app.post("/parteh")
 async def read_parteg_post(
-    probabilidad_falla: float = Form(...),
+    hechos: List[str] = Form([])
 ):
-    return evaluar_riesgo(probabilidad_falla)
+    print("HECHOS RECIBIDOS EN BACKEND /PARTEH:", hechos)
+    return evaluar_probabilidades(hechos)
 
 @app.get("/partei")
 async def read_parteh():

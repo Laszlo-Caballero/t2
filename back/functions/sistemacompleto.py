@@ -1,3 +1,5 @@
+import os
+import shutil
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -7,6 +9,15 @@ import threading
 import time
 import random
 from model.sistemacompleto_model import PedidosInput
+
+# Copiar las imágenes de almacén a la carpeta static para que sean accesibles mediante la API
+os.makedirs("static", exist_ok=True)
+for img in ["paquete_bueno.jpg", "paquete_danado.jpg", "zona_obstruida.jpg"]:
+    src_path = os.path.join("images", img)
+    dst_path = os.path.join("static", img)
+    if os.path.exists(src_path) and not os.path.exists(dst_path):
+        shutil.copy(src_path, dst_path)
+
 
 def ejecutar_sistema_completo(
     seed: int = 10,
@@ -284,7 +295,7 @@ def ejecutar_sistema_completo(
         },
         "multiagente": {
             "datos_actuales": datos_actuales,
-            "imagen_analizada": imagen_analizada,
+            "imagen_analizada": "/static/" + imagen_analizada,
             "hechos_detectados": hechos_detectados,
             "riesgos": riesgos,
             "recomendaciones": recomendaciones,
