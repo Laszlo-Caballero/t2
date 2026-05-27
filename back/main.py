@@ -19,6 +19,8 @@ from functions.partei import generar_diagrama_interaccion
 from functions.partej import ejecutar_paralelo
 from functions.partek import obtener_datos_iniciales, optimizar_pedidos
 from model.partek_model import PedidosIniciales
+from functions.sistemacompleto import ejecutar_sistema_completo
+from model.sistemacompleto_model import SistemaCompletoRequest
 
 os.makedirs("static", exist_ok=True)
 
@@ -144,3 +146,18 @@ async def read_partek(
     val =  obtener_datos_iniciales(datos=request)
     
     return optimizar_pedidos(val)
+
+
+@app.post("/sistemacompleto")
+async def read_sistemacompleto(
+    request: SistemaCompletoRequest
+):
+    return ejecutar_sistema_completo(
+        seed=request.seed,
+        registros=request.registros,
+        temp_limite=request.temp_limite,
+        vib_limite=request.vib_limite,
+        hum_limite=request.hum_limite,
+        ocu_limite=request.ocu_limite,
+        pedidos_input=request.pedidos
+    )
